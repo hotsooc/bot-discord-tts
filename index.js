@@ -20,7 +20,7 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates,
   ]
 });
-
+//const ALLOWED_GUILD_ID = '123456789012345678';
 const connections = new Map();
 
 client.once('ready', () => {
@@ -30,7 +30,7 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith('!say')) return;
-
+  //if (message.guild?.id !== ALLOWED_GUILD_ID) return;
   const text = message.content.slice(5).trim();
   if (!text) return message.reply('Bạn cần nhập nội dung.');
 
