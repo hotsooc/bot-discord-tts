@@ -21,7 +21,6 @@ const client = new Client({
   ]
 });
 
-// Dùng map để lưu connection theo guild
 const connections = new Map();
 
 client.once('ready', () => {
@@ -35,10 +34,12 @@ client.on('messageCreate', async (message) => {
   const text = message.content.slice(5).trim();
   if (!text) return message.reply('Bạn cần nhập nội dung.');
 
+  const speaker = message.member?.displayName || message.author.username;
+  const fullText = `${speaker} nói: ${text}`;
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) return message.reply('Bạn phải vào kênh voice trước.');
 
-  const url = googleTTS.getAudioUrl(text, {
+  const url = googleTTS.getAudioUrl(fullText, {
     lang: 'vi',
     slow: false,
     host: 'https://translate.google.com',
@@ -51,8 +52,8 @@ client.on('messageCreate', async (message) => {
     response.pipe(file);
     file.on('finish', () => {
       file.close(() => {
-        // Nếu chưa có kết nối, tạo mới
         let connection = getVoiceConnection(voiceChannel.guild.id);
+
         if (!connection) {
           connection = joinVoiceChannel({
             channelId: voiceChannel.id,
@@ -60,25 +61,41 @@ client.on('messageCreate', async (message) => {
             adapterCreator: voiceChannel.guild.voiceAdapterCreator,
           });
 
-          // Lưu kết nối
+          const greetingFile = getGreetingFilePath();
+          const greetingResource = createAudioResource(fs.createReadStream(greetingFile));
+          const greetingPlayer = createAudioPlayer();
+
+          greetingPlayer.play(greetingResource);
+          connection.subscribe(greetingPlayer);
+
+          greetingPlayer.on(AudioPlayerStatus.Idle, () => {
+            const ttsResource = createAudioResource(fs.createReadStream(filePath));
+            const ttsPlayer = createAudioPlayer();
+            ttsPlayer.play(ttsResource);
+            connection.subscribe(ttsPlayer);
+
+            ttsPlayer.on(AudioPlayerStatus.Idle, () => {
+              fs.unlinkSync(filePath);
+            });
+          });
+
           connections.set(voiceChannel.guild.id, connection);
+        } else {
+          const resource = createAudioResource(fs.createReadStream(filePath));
+          const player = createAudioPlayer();
+          player.play(resource);
+          connection.subscribe(player);
+
+          player.on(AudioPlayerStatus.Idle, () => {
+            fs.unlinkSync(filePath);
+          });
         }
-
-        const resource = createAudioResource(fs.createReadStream(filePath));
-        const player = createAudioPlayer();
-        player.play(resource);
-        connection.subscribe(player);
-
-        player.on(AudioPlayerStatus.Idle, () => {
-          fs.unlinkSync(filePath);
-          // Không destroy() nữa
-        });
       });
     });
   });
 });
 
-// Thêm lệnh !leave để rời khỏi voice khi cần
+// Lệnh rời khỏi voice
 client.on('messageCreate', async (message) => {
   if (message.content === '!leave') {
     const connection = getVoiceConnection(message.guild.id);
@@ -93,3 +110,17 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+function getGreetingFilePath() {
+  const now = new Date();
+  const utc7 = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+  const hour = utc7.getUTCHours();
+
+  if (hour >= 6 && hour <= 10) {
+    return path.join(__dirname, 'audio', 'morning.mp3');
+  } else if (hour >= 11 && hour < 18) {
+    return path.join(__dirname, 'audio', 'afternoon.mp3');
+  } else {
+    return path.join(__dirname, 'audio', 'evening.mp3');
+  }
+}
