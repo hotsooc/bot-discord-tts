@@ -11,9 +11,12 @@
   "description": "",
   "dependencies": {
     "@discordjs/voice": "^0.18.0",
+    "discord-api-types": "^0.38.16",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
     "google-tts-api": "^2.0.2",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   }
 }
