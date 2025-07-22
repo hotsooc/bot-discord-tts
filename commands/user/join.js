@@ -19,8 +19,8 @@ module.exports = {
 
     try {
       const greetingFile = getGreetingFilePath();
+      await interaction.followUp({ content: `✅ Umaru-chan đã tham gia kênh voice.`, ephemeral: true });
       await playSound(interaction, greetingFile, voiceChannel, 'greeting');
-      await interaction.followUp({ content: `✅ Đã tham gia kênh voice và phát âm thanh chào hỏi.`, ephemeral: true });
       logger.info(`Lệnh /join được gọi bởi ${interaction.user.tag} trong kênh ${voiceChannel.name}`);
     } catch (error) {
       logger.error(`Lỗi khi thực hiện lệnh /join bởi ${interaction.user.tag}:`, error);

@@ -22,11 +22,20 @@ module.exports = {
       });
       return;
     }
+    
+    const botMember = interaction.guild.members.me;
+    if (botMember.voice.channel.id !== voiceChannel.id) {
+      await interaction.reply({
+        content: '🤖 Bạn phải ở cùng kênh voice với bot.',
+        ephemeral: true,
+      });
+      return;
+    }
 
     const connection = getVoiceConnection(interaction.guild.id);
     if (!connection) {
       await interaction.reply({
-        content: '❗ Bot chưa ở trong voice. Hãy dùng lệnh `/join` trước.',
+        content: '🤖 Bot chưa ở trong voice. Hãy dùng lệnh `/join` trước.',
         flags: MessageFlags.Ephemeral,
       });
       return;

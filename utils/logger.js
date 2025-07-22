@@ -13,7 +13,7 @@ const logger = createLogger({
     new DailyRotateFile({
       filename: 'logs/bot-%DATE%.log',
       datePattern: 'YYYY-MM-DD',
-      maxFiles: '3d', 
+      maxFiles: '1d', 
       zippedArchive: false, 
     }),
   ],
