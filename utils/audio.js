@@ -123,7 +123,16 @@ async function ensureConnection(interaction, voiceChannel) {
     await interaction.reply({ content: '🔊 Bạn phải vào kênh voice trước.', ephemeral: true }).catch(() => {});
     return null;
   }
+
   let connection = getVoiceConnection(interaction.guild.id);
+
+  if (connection && connection.state.status === 'disconnected') {
+    connection.destroy();
+    connections.delete(interaction.guild.id);
+    connection = null;
+  }
+
+  // Nếu không có kết nối hợp lệ, tạo mới
   if (!connection) {
     try {
       connection = joinVoiceChannel({
@@ -138,6 +147,7 @@ async function ensureConnection(interaction, voiceChannel) {
       return null;
     }
   }
+
   return connection;
 }
 
