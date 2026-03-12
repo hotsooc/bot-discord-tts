@@ -1,4 +1,4 @@
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, getVoiceConnection, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, getVoiceConnection, AudioPlayerStatus, StreamType } = require('@discordjs/voice');
 const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const fsp = require('fs').promises;
@@ -6,7 +6,7 @@ const https = require('https');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
-
+const ffmpeg = require('ffmpeg-static');
 const connections = new Map();
 const ttsQueue = [];
 let isProcessing = false;
@@ -84,12 +84,14 @@ async function processQueue() {
 
     const playAudio = file => {
       const player = createAudioPlayer();
-      const resource = createAudioResource(fs.createReadStream(file));
+      const resource = createAudioResource(fs.createReadStream(file), {
+        inputType: StreamType.Arbitrary, // Thêm dòng này để ép bot dùng FFmpeg giải mã mp3
+      });
       player.play(resource);
       connection.subscribe(player);
       return player;
     };
-
+    
     const greetingFile = getGreetingFilePath();
     if (!getVoiceConnection(voiceChannel.guild.id)) {
       const greetingPlayer = playAudio(greetingFile);
