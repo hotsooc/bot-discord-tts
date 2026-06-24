@@ -2,6 +2,8 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { loadEvents } = require('./utils/eventLoader');
+const { loadCommands } = require('./utils/commandLoader');
+const { startIdleMonitor } = require('./utils/voiceManager');
 const logger = require('./utils/logger');
 
 const client = new Client({
@@ -13,11 +15,14 @@ const client = new Client({
   ],
 });
 
-/**
- * Load events and login the bot.
- */
-loadEvents(client);
-client.login(process.env.DISCORD_TOKEN).catch(error => {
-  logger.error('Error logging in bot:', error);
-  process.exit(1);
-});
+(async () => {
+  await loadCommands();
+
+  loadEvents(client);
+  startIdleMonitor(client);
+
+  client.login(process.env.DISCORD_TOKEN).catch(error => {
+    logger.error('Error logging in bot:', error);
+    process.exit(1);
+  });
+})();

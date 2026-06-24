@@ -1,0 +1,20 @@
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: ban
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: listban
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: unban
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: join
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: leave
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: say
+2026-06-24 16:33:55 [INFO]: Đã nạp lệnh: soundboard
+2026-06-24 16:33:55 [INFO]: Đã nạp 7 lệnh
+2026-06-24 16:33:55 [INFO]: Giám sát idle voice: tự động rời sau 30 phút
+2026-06-24 16:33:55 [INFO]: Loaded event: interactionCreate
+2026-06-24 16:33:55 [INFO]: Loaded event: clientReady
+2026-06-24 16:33:57 [INFO]: ✅ Bot đã đăng nhập với tên: Umaru-chan#8911
+2026-06-24 16:34:07 [INFO]: Lệnh /join được gọi bởi rosociu2933 trong kênh Đang đi đạp xe nâng cao sức k###
+2026-06-24 16:34:07 [INFO]: Đã thực hiện lệnh join bởi rosociu2933
+2026-06-24 16:35:08 [INFO]: Lệnh /say được gọi bởi rosociu2933: "abc" (voice: macdinh)
+2026-06-24 16:35:08 [INFO]: Đã thực hiện lệnh say bởi rosociu2933
+2026-06-24 16:35:47 [INFO]: Lệnh /say được gọi bởi rosociu2933: "abc" (voice: macdinh)
+2026-06-24 16:35:47 [INFO]: Đã thực hiện lệnh say bởi rosociu2933
+2026-06-24 16:38:43 [INFO]: Bot đã phát leave.mp3 và rời kênh voice bởi rosociu2933
+2026-06-24 16:38:43 [INFO]: Đã thực hiện lệnh leave bởi rosociu2933

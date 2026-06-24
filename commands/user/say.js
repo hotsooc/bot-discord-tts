@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { queueTTS } = require('../../utils/audio');
+const { queueTTS, VOICE_CHOICES } = require('../../utils/audio');
 const { getVoiceConnection } = require('@discordjs/voice');
 const { MessageFlags } = require('discord-api-types/v10');
 const logger = require('../../utils/logger');
@@ -12,6 +12,12 @@ module.exports = {
       option.setName('text')
         .setDescription('Văn bản cần phát')
         .setRequired(true)
+    )
+    .addStringOption(option =>
+      option.setName('voice')
+        .setDescription('Kiểu giọng đọc (mặc định: Mặc định)')
+        .setRequired(false)
+        .addChoices(...VOICE_CHOICES)
     ),
   async execute(interaction) {
     const voiceChannel = interaction.member.voice.channel;
@@ -22,9 +28,9 @@ module.exports = {
       });
       return;
     }
-    
+
     const botMember = interaction.guild.members.me;
-    if (botMember.voice.channel.id !== voiceChannel.id) {
+    if (botMember.voice.channel && botMember.voice.channel.id !== voiceChannel.id) {
       await interaction.reply({
         content: '🤖 Bạn phải ở cùng kênh voice với bot.',
         ephemeral: true,
@@ -33,22 +39,19 @@ module.exports = {
     }
 
     const connection = getVoiceConnection(interaction.guild.id);
-    if (!connection) {
-      await interaction.reply({
-        content: '🤖 Bot chưa ở trong voice. Hãy dùng lệnh `/join` trước.',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
+    if (!connection && !botMember.voice.channel) {
+      // cho phép /say tự join nếu bot chưa ở voice
     }
 
-
     const text = interaction.options.getString('text');
+    const voice = interaction.options.getString('voice') || 'macdinh';
+
     try {
-      await queueTTS(interaction, text, voiceChannel);
+      await queueTTS(interaction, text, voiceChannel, voice);
       await interaction.reply({
         content: `**${interaction.member.displayName}** nói: **${text}**`,
       });
-      logger.info(`Lệnh /say được gọi bởi ${interaction.user.tag}: "${text}"`);
+      logger.info(`Lệnh /say được gọi bởi ${interaction.user.tag}: "${text}" (voice: ${voice})`);
     } catch (error) {
       logger.error(`Lỗi khi xử lý lệnh /say bởi ${interaction.user.tag}:`, error);
       await interaction.reply({
