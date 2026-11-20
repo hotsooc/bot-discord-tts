@@ -1,14 +1,13 @@
-const { SlashCommandBuilder } = require('discord.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const logger = require('../../utils/logger');
 const { hasPermission } = require('../../utils/permissions');
-
+const blacklist = require('../../utils/blacklist');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('listban')
-    .setDescription('Hiển thị danh sách người dùng bị cấm sử dụng bot.'),
+    .setDescription('Hiển thị danh sách người dùng bị cấm sử dụng bot.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
 
@@ -17,83 +16,36 @@ module.exports = {
       return;
     }
 
-    const dataDir = path.join(__dirname, '../../data');
-    try {
-      await fs.mkdir(dataDir, { recursive: true });
-    } catch (err) {
-      logger.error(`Lỗi khi tạo thư mục ${dataDir}:`, err);
+    const bannedIds = blacklist.getBannedList();
+
+    if (bannedIds.length === 0) {
       await interaction.followUp({
-        content: '⚠️ Lỗi khi khởi tạo thư mục dữ liệu. Vui lòng thử lại sau.',
+        content: '✅ Hiện tại không có người dùng nào trong danh sách cấm.',
         ephemeral: true,
       });
-      return;
-    }
-
-    const filePath = path.join(dataDir, 'blacklist.json');
-
-    // Read blacklist file
-    let bannedUsers = { banned: [] };
-    try {
-      const data = await fs.readFile(filePath, 'utf8');
-      bannedUsers = JSON.parse(data);
-      if (!Array.isArray(bannedUsers.banned)) {
-        bannedUsers.banned = [];
-        logger.warn(`blacklist.json không có mảng banned hợp lệ, khởi tạo lại: ${filePath}`);
-      }
-    } catch (err) {
-      if (err.code === 'ENOENT') {
-        logger.info(`Tệp ${filePath} không tồn tại, trả về danh sách rỗng`);
-      } else {
-        logger.error(`Lỗi khi đọc ${filePath}:`, err);
-        await interaction.followUp({
-          content: '⚠️ Lỗi khi đọc danh sách cấm. Vui lòng thử lại sau.',
-          ephemeral: true,
-        });
-        return;
-      }
-    }
-
-    if (bannedUsers.banned.length === 0) {
-      await interaction.followUp({
-        content: '✅ Không có người dùng nào trong danh sách cấm.',
-        ephemeral: true,
-      });
-      logger.info(`Lệnh /listban được gọi bởi ${interaction.user.tag}: Danh sách cấm rỗng`);
       return;
     }
 
     const bannedList = [];
-    for (const userId of bannedUsers.banned) {
+    for (const userId of bannedIds) {
       try {
         const user = await interaction.client.users.fetch(userId);
-        let displayName = 'Không xác định';
-        try {
-          const member = await interaction.guild.members.fetch(userId);
-          displayName = member.displayName || user.username;
-        } catch (memberError) {
-          logger.warn(`Không thể lấy GuildMember cho người dùng ${userId}:`, memberError);
-        }
-        bannedList.push(`- ${displayName} (username: ${user.username})`);
-      } catch (error) {
-        bannedList.push(`- Không xác định (username: Không xác định`);
-        logger.warn(`Không thể lấy thông tin người dùng ${userId}:`, error);
+        bannedList.push(`• **${user.tag}** (\`${user.id}\`)`);
+      } catch {
+        bannedList.push(`• \`ID: ${userId}\` (Không rõ thông tin)`);
       }
     }
 
-    // Dislay
-    const response = `📜 **Danh sách người dùng bị cấm**:\n${bannedList.join('\n')}`;
-    try {
-      await interaction.followUp({
-        content: response,
-        ephemeral: true,
-      });
-      logger.info(`Lệnh /listban được gọi bởi ${interaction.user.tag}: Hiển thị ${bannedUsers.banned.length} người dùng bị cấm`);
-    } catch (error) {
-      logger.error(`Lỗi khi trả lời lệnh /listban bởi ${interaction.user.tag}:`, error);
-      await interaction.followUp({
-        content: '⚠️ Lỗi khi hiển thị danh sách cấm. Vui lòng thử lại sau.',
-        ephemeral: true,
-      });
-    }
+    const embed = new EmbedBuilder()
+      .setColor('#ff4757')
+      .setTitle('📜 Danh Sách Người Dùng Bị Cấm')
+      .setDescription(bannedList.join('\n'))
+      .setFooter({ text: `Tổng cộng: ${bannedIds.length} người dùng` })
+      .setTimestamp();
+
+    await interaction.followUp({
+      embeds: [embed],
+      ephemeral: true,
+    });
   },
 };

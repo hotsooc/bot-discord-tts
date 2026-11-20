@@ -1,10 +1,18 @@
-
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { loadEvents } = require('./utils/eventLoader');
 const { loadCommands } = require('./utils/commandLoader');
 const { startIdleMonitor } = require('./utils/voiceManager');
 const logger = require('./utils/logger');
+
+// Xử lý bắt lỗi toàn cục tránh crash tiến trình
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+});
 
 const client = new Client({
   intents: [

@@ -1,7 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { queueTTS, VOICE_CHOICES } = require('../../utils/audio');
 const { getVoiceConnection } = require('@discordjs/voice');
-const { MessageFlags } = require('discord-api-types/v10');
 const logger = require('../../utils/logger');
 
 module.exports = {
@@ -12,6 +11,7 @@ module.exports = {
       option.setName('text')
         .setDescription('Văn bản cần phát')
         .setRequired(true)
+        .setMaxLength(500)
     )
     .addStringOption(option =>
       option.setName('voice')
@@ -23,8 +23,8 @@ module.exports = {
     const voiceChannel = interaction.member.voice.channel;
     if (!voiceChannel) {
       await interaction.reply({
-        content: '🔊 Bạn phải vào kênh voice trước.',
-        flags: MessageFlags.Ephemeral,
+        content: '🔊 Bạn phải vào một kênh voice trước.',
+        ephemeral: true,
       });
       return;
     }
@@ -38,26 +38,27 @@ module.exports = {
       return;
     }
 
-    const connection = getVoiceConnection(interaction.guild.id);
-    if (!connection && !botMember.voice.channel) {
-      // cho phép /say tự join nếu bot chưa ở voice
-    }
-
     const text = interaction.options.getString('text');
     const voice = interaction.options.getString('voice') || 'macdinh';
 
     try {
-      await queueTTS(interaction, text, voiceChannel, voice);
-      await interaction.reply({
-        content: `**${interaction.member.displayName}** nói: **${text}**`,
-      });
-      logger.info(`Lệnh /say được gọi bởi ${interaction.user.tag}: "${text}" (voice: ${voice})`);
+      const queued = await queueTTS(interaction, text, voiceChannel, voice);
+      if (queued) {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: `🗣️ **${interaction.member.displayName}**: ${text}`,
+          });
+        }
+        logger.info(`Lệnh /say được gọi bởi ${interaction.user.tag}: "${text}" (voice: ${voice})`);
+      }
     } catch (error) {
       logger.error(`Lỗi khi xử lý lệnh /say bởi ${interaction.user.tag}:`, error);
-      await interaction.reply({
-        content: '❌ Lỗi khi xử lý văn bản TTS.',
-        flags: MessageFlags.Ephemeral,
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '❌ Lỗi khi xử lý văn bản TTS.',
+          ephemeral: true,
+        });
+      }
     }
   },
 };

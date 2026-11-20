@@ -12,8 +12,8 @@ npm install
 
 Requires `.env` with:
 - `DISCORD_TOKEN` — bot token
-- `CLIENT_ID` — application client ID (for slash command registration)
-- `GUILD_ID` — server ID (guild-specific slash commands)
+- `CLIENT_ID` — (tùy chọn) application client ID (tự động phát hiện nếu bỏ trống)
+- `GUILD_ID` — (tùy chọn) server ID để nạp nhanh guild-specific slash commands, nếu bỏ trống sẽ nạp toàn cục (global)
 
 ## Commands
 
@@ -28,35 +28,43 @@ No build step. No linter. No typecheck. `npm test` is a stub — there are no te
 ## Architecture
 
 ```
-index.js              — loads commands, loads events, starts idle monitor, logs in
+index.js              — loads commands, loads events, starts idle monitor, global error handlers, logs in
 events/               — auto-loaded by eventLoader.js (one file = one event)
+  interactionCreate.js — slash commands, autocomplete, soundboard select menu
+  ready.js            — client ready log
+  voiceStateUpdate.js — auto-leave countdown when voice channel is empty
 commands/admin/       — ban, unban, listban (require Leader/Moderator role)
-commands/user/        — join, leave, say, soundboard
+commands/user/        — join, leave, say, skip, stop, soundboard, ping, help
 utils/
-  audio.js            — TTS queue, voice effects, sound playback
+  audio.js            — multi-guild TTS queue, voice effects, sound playback, text sanitizer
+  blacklist.js        — in-memory blacklist cache with async file persistence
   commandLoader.js    — loads commands once into a Map on startup
-  voiceManager.js     — auto-disconnect after 30 min idle
+  voiceManager.js     — auto-disconnect after 30 min idle or 60s when channel is empty
   logger.js           — Winston daily rotation
   permissions.js       — role/perm checks
   replyUtils.js        — safeReply helper
   eventLoader.js       — auto-loads event handlers
 data/                  — blacklist.json (banned user IDs)
+temp/                  — temporary audio files (auto-cleaned)
 assets/                — join/ leave/ soundboard/ (MP3 files)
 ```
 
 ### Command pattern
 
-Every command file exports `data` (SlashCommandBuilder) and `async execute(interaction)`. Commands are loaded once at startup via `commandLoader.js` and cached in a Map — no disk reads per interaction.
+Every command file exports `data` (SlashCommandBuilder) and `async execute(interaction)` (and optional `async autocomplete(interaction)`). Commands are loaded once at startup via `commandLoader.js` and cached in a Map — no disk reads per interaction.
 
 ### Voice / TTS
 
 All voice logic lives in `utils/audio.js`. Key behaviors:
-- TTS queue max 10 items, processed sequentially
-- Google TTS is fetched via HTTPS, saved as temp MP3, processed through ffmpeg for voice effects, played, then deleted
+- Multi-guild isolation: Each guild has its own independent TTS queue and state (`guildStates = new Map()`)
+- Multi-chunk handling: Automatically chunks long text (>200 chars) via `getAllAudioUrls` so long messages never crash TTS
+- Text Sanitizer: Automatically replaces URLs with "đường liên kết", strips spam mentions, and limits redundant repeated chars
+- Temporary audio files saved to `temp/` folder with guaranteed cleanup on finish/error
 - `/say` accepts optional `voice` parameter with 6 presets: mặc định, nhanh, chậm, cao, trầm, robot. Effects applied via ffmpeg audio filters.
+- `/skip` and `/stop` controls for instant playback control
 - Greeting (`assets/join/`) plays automatically on first join based on time of day (UTC+7): morning (6–10), afternoon (11–17), evening (18–5)
-- Soundboard reads `.mp3` files from `assets/soundboard/`, limited to 25 Discord select menu options
-- Auto-disconnect after 30 minutes of voice inactivity (`utils/voiceManager.js`)
+- Soundboard supports both real-time Autocomplete search (`/soundboard sound:<name>`) and Select Menu
+- Auto-disconnect after 30 minutes of voice inactivity, or 60 seconds after all users leave the channel (`utils/voiceManager.js`)
 
 ### Permissions
 

@@ -1,3 +1,6 @@
 node_modules/
 .env
-tts.mp3
+logs/
+temp/
+/tts*.mp3
+utils/tts*.mp3
